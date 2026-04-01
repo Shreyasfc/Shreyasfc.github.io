@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>How Does The Internet Find A Website?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f5f5f3;--bg3:#efefec;
+  --text:#1a1a18;--muted:#6b6b66;--hint:#9c9a92;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);--border3:rgba(0,0,0,0.35);
+  --info-bg:#E6F1FB;--info-text:#0C447C;--info-border:rgba(24,95,165,0.3);
+  --success-bg:#EAF3DE;--success-text:#27500A;--success-border:rgba(59,109,17,0.3);
+  --danger-bg:#FCEBEB;--danger-text:#791F1F;--danger-border:rgba(163,45,45,0.3);
+  --warn-bg:#FAEEDA;--warn-text:#633806;--warn-border:rgba(186,117,23,0.3);
+  --radius:8px;--radius-lg:12px;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1e1e1c;--bg2:#2a2a28;--bg3:#323230;
+    --text:#e8e6de;--muted:#9c9a92;--hint:#6b6b66;
+    --border:rgba(255,255,255,0.10);--border2:rgba(255,255,255,0.20);--border3:rgba(255,255,255,0.32);
+    --info-bg:#042C53;--info-text:#85B7EB;--info-border:rgba(133,183,235,0.3);
+    --success-bg:#173404;--success-text:#97C459;--success-border:rgba(151,196,89,0.3);
+    --danger-bg:#501313;--danger-text:#F09595;--danger-border:rgba(240,149,149,0.3);
+    --warn-bg:#412402;--warn-text:#EF9F27;--warn-border:rgba(239,159,39,0.3);
+  }
+}
+body{font-family:var(--sans);background:var(--bg2);color:var(--text);min-height:100vh;display:flex;justify-content:center;padding:2rem 1rem}
+.container{width:100%;max-width:640px}
+.page-header{text-align:center;margin-bottom:2rem;padding-top:.5rem}
+.page-header h1{font-size:24px;font-weight:500;margin-bottom:6px}
+.page-header p{font-size:14px;color:var(--muted);line-height:1.6}
+.input-row{display:flex;gap:8px;margin:1.25rem 0 0}
+.input-row input{flex:1;padding:9px 13px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);font-family:var(--mono);font-size:14px;color:var(--text);outline:none;transition:border-color .15s}
+.input-row input:focus{border-color:var(--border3)}
+button{padding:9px 18px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);font-family:var(--sans);font-size:13px;font-weight:500;color:var(--text);cursor:pointer;transition:background .15s}
+button:hover{background:var(--bg3)}
+button.primary{background:#185FA5;color:#fff;border-color:transparent}
+button.primary:hover{opacity:.9}
+.err{font-size:13px;color:var(--danger-text);padding:8px 12px;border-radius:var(--radius);background:var(--danger-bg);border:0.5px solid var(--danger-border);margin-top:.75rem}
+.prog-row{display:flex;align-items:center;gap:6px;margin-bottom:1.5rem}
+.prog-pip{width:6px;height:6px;border-radius:50%;background:var(--border2);transition:background .25s,transform .25s;cursor:pointer}
+.prog-pip.done{background:var(--success-text)}
+.prog-pip.active{background:#185FA5;transform:scale(1.5)}
+.prog-label{font-size:11px;color:var(--hint);font-family:var(--mono);margin-left:8px}
+.page-card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1rem}
+.actor-badge{display:inline-flex;align-items:center;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;border:0.5px solid;margin-bottom:1rem}
+.actor-badge.browser{background:#E6F1FB;color:#0C447C;border-color:#B5D4F4}
+.actor-badge.resolver{background:#EEEDFE;color:#3C3489;border-color:#CECBF6}
+.actor-badge.root{background:#FAEEDA;color:#633806;border-color:#FAC775}
+.actor-badge.tld{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.actor-badge.auth{background:#EAF3DE;color:#27500A;border-color:#C0DD97}
+.actor-badge.cache{background:#FAECE7;color:#712B13;border-color:#F5C4B3}
+.actor-badge.done-badge{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}
+.page-step-title{font-size:18px;font-weight:500;margin-bottom:.5rem;line-height:1.3}
+.page-narrative{font-size:14px;color:var(--muted);line-height:1.75;margin-bottom:.75rem}
+.page-narrative strong{color:var(--text)}
+.packet-block{background:var(--bg2);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:.75rem}
+.packet-row{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.packet-row:last-child{margin-bottom:0}
+.pdir{font-size:11px;font-weight:500;color:var(--hint);font-family:var(--mono);min-width:40px}
+.pval{font-size:12px;font-family:var(--mono);color:var(--text)}
+.pval.reply{color:var(--success-text)}
+.nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:1.25rem}
+.counter{font-size:12px;color:var(--hint);font-family:var(--mono)}
+.ix{border-radius:var(--radius-lg);border:1.5px dashed rgba(24,95,165,0.4);padding:1rem;margin:.75rem 0}
+.ix-header{display:flex;align-items:center;gap:7px;margin-bottom:.75rem}
+.ix-dot{width:7px;height:7px;border-radius:50%;background:#185FA5;flex-shrink:0}
+.ix-label{font-size:11px;font-weight:500;color:#185FA5;letter-spacing:.04em;text-transform:uppercase}
+.takeaway{margin-top:.9rem;padding:.75rem 1rem;border-radius:var(--radius);background:var(--bg2);display:flex;gap:12px;align-items:flex-start}
+.takeaway-icon{font-size:20px;flex-shrink:0;padding-top:1px;line-height:1}
+.takeaway-right{flex:1}
+.takeaway-kicker{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--hint);margin-bottom:3px}
+.takeaway-headline{font-size:13px;font-weight:500;margin-bottom:3px;line-height:1.4}
+.takeaway-body{font-size:12px;color:var(--hint);line-height:1.6}
+.cache-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.6rem}
+.cache-pill{padding:6px 14px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);font-size:13px;font-family:var(--mono);color:var(--muted);cursor:pointer;transition:all .15s;font-weight:500}
+.cache-pill:hover{border-color:var(--border3);background:var(--bg)}
+.cache-pill.hit{background:var(--success-bg);border-color:var(--success-border);color:var(--success-text)}
+.cache-pill.miss{background:var(--danger-bg);border-color:var(--danger-border);color:var(--danger-text)}
+.cache-msg{font-size:13px;min-height:20px;line-height:1.5;color:var(--muted)}
+.hosts-file{font-family:var(--mono);font-size:12px;line-height:2.1;color:var(--muted);background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:.75rem;margin-bottom:.75rem}
+.comment{color:var(--hint)}
+.ip-pill{display:inline-block;background:var(--warn-bg);border:0.5px solid var(--warn-border);color:var(--warn-text);border-radius:4px;padding:0 6px;cursor:pointer;font-weight:500}
+.ip-pill:hover{opacity:.75}
+.override-row{display:none}
+.override-row .ip-pill{background:var(--info-bg);border-color:var(--info-border);color:var(--info-text)}
+.ip-popover{margin-top:.75rem;padding:.9rem 1rem;border-radius:var(--radius);border:0.5px solid var(--warn-border);background:var(--warn-bg);display:none}
+.ip-popover.show{display:block}
+.ip-popover-title{font-size:13px;font-weight:500;color:var(--warn-text);margin-bottom:.4rem}
+.ip-popover-body{font-size:13px;color:var(--muted);line-height:1.65;margin-bottom:.75rem}
+.ip-parts{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:.6rem}
+.ip-chunk{padding:5px 11px;border-radius:6px;font-family:var(--mono);font-size:14px;font-weight:500;border:0.5px solid;cursor:pointer;transition:opacity .2s}
+.ip-chunk:nth-child(1){background:#E6F1FB;color:#0C447C;border-color:#B5D4F4}
+.ip-chunk:nth-child(3){background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.ip-chunk:nth-child(5){background:#FAEEDA;color:#633806;border-color:#FAC775}
+.ip-chunk:nth-child(7){background:#EEEDFE;color:#3C3489;border-color:#CECBF6}
+.ip-dot-sep{font-size:15px;color:var(--hint);font-weight:500}
+.ip-expl{font-size:12px;color:var(--muted);min-height:16px;line-height:1.5}
+.hosts-toggle-row{display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:.5rem;padding:8px 10px;border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg);transition:background .15s}
+.hosts-toggle-row:hover{background:var(--bg2)}
+.tog-track{width:36px;height:20px;border-radius:10px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0}
+.tog-track.on{background:#185FA5}
+.tog-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:white;transition:transform .2s}
+.tog-track.on .tog-thumb{transform:translateX(16px)}
+.tog-label{font-size:13px;color:var(--muted)}
+.hosts-result{font-size:13px;color:var(--hint);min-height:18px;line-height:1.5;margin-top:.4rem}
+.pb-fields{display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem}
+.pb-row{display:flex;align-items:center;gap:8px}
+.pb-key{font-size:12px;color:var(--hint);min-width:52px;font-family:var(--mono)}
+.pb-val{font-size:12px;font-family:var(--mono);color:var(--muted);background:var(--bg);border:0.5px solid var(--border);border-radius:6px;padding:5px 9px;flex:1}
+.pb-send{width:100%;padding:10px;border-radius:var(--radius);border:none;background:#185FA5;color:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:opacity .15s}
+.pb-send:hover{opacity:.85}
+.pb-reply{margin-top:.6rem;padding:8px 10px;border-radius:6px;border:0.5px solid var(--success-border);background:var(--success-bg);font-family:var(--mono);font-size:12px;color:var(--success-text);display:none;line-height:1.6}
+.chain{display:flex;flex-direction:column;gap:6px}
+.chain-hop{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--bg);cursor:pointer;transition:all .2s}
+.chain-hop:hover{background:var(--bg2)}
+.chain-hop.open{border-color:var(--info-border);background:var(--info-bg)}
+.hop-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;background:var(--bg2);color:var(--muted);transition:all .2s;border:0.5px solid var(--border2)}
+.chain-hop.open .hop-num{background:#185FA5;color:white;border-color:transparent}
+.hop-body{flex:1}
+.hop-name{font-size:13px;font-weight:500;transition:color .2s}
+.chain-hop.open .hop-name{color:var(--info-text)}
+.hop-role{font-size:11px;color:var(--hint);margin-top:1px}
+.hop-said{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.5;display:none}
+.chain-hop.open .hop-said{display:block}
+.hop-caret{font-size:11px;color:var(--hint);padding-top:6px;flex-shrink:0}
+.dir-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--bg2);cursor:pointer;font-family:var(--mono);font-size:12px;margin-bottom:4px;transition:all .15s;user-select:none}
+.dir-row:hover{background:var(--bg);border-color:var(--border2)}
+.dir-row.active{background:var(--info-bg);border-color:var(--info-border)}
+.dir-domain{flex-shrink:0;min-width:110px;color:var(--muted)}
+.dir-row.active .dir-domain{color:var(--info-text);font-weight:500}
+.dir-sep{color:var(--hint);flex-shrink:0}
+.dir-ns{color:var(--hint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:11px}
+.dir-row.active .dir-ns{color:var(--info-text)}
+.dir-show-more{width:100%;padding:8px;border-radius:var(--radius);border:0.5px dashed var(--border2);background:transparent;color:var(--hint);font-size:12px;cursor:pointer;font-family:var(--sans);margin-top:2px;transition:background .15s}
+.dir-show-more:hover{background:var(--bg2)}
+.dir-hint{font-size:12px;color:var(--muted);margin-top:.5rem;min-height:18px;line-height:1.5}
+.zcard{border-radius:var(--radius);border:0.5px solid var(--border2);background:var(--bg2);margin-bottom:6px;overflow:hidden}
+.zcard-head{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;background:transparent;border:none;width:100%;text-align:left;font-family:var(--sans);transition:background .15s}
+.zcard-head:hover{background:var(--bg)}
+.zcard.zopen .zcard-head{background:var(--success-bg)}
+.zcard.zopen{border-color:var(--success-border)}
+.ztype{font-family:var(--mono);font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px;background:var(--bg);color:var(--info-text);border:0.5px solid var(--info-border);flex-shrink:0}
+.zcard.zopen .ztype{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}
+.zval{font-family:var(--mono);font-size:12px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zcard.zopen .zval{color:var(--success-text)}
+.zchev{font-size:11px;color:var(--hint);flex-shrink:0;display:inline-block;transition:transform .2s}
+.zcard.zopen .zchev{transform:rotate(90deg);color:var(--success-text)}
+.zbody{display:none;padding:10px 12px 12px;font-size:13px;color:var(--muted);line-height:1.65;background:var(--bg);border-top:0.5px solid var(--border)}
+.zcard.zopen .zbody{display:block}
+.zprog{font-size:12px;color:var(--hint);margin-top:.5rem}
+.ttl-big{font-size:36px;font-weight:500;font-family:var(--mono);margin:.25rem 0 .1rem}
+.ttl-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:.75rem}
+input[type=range]{width:100%;accent-color:#185FA5;cursor:pointer;margin-bottom:.4rem}
+.ttl-scenarios{display:flex;flex-direction:column;gap:6px}
+.ttl-scenario{padding:9px 12px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--bg2);transition:all .3s}
+.ttl-scenario.best{border-color:var(--success-border);background:var(--success-bg)}
+.ttl-scenario.warn{border-color:var(--warn-border);background:var(--warn-bg)}
+.ttl-scenario.bad{border-color:var(--danger-border);background:var(--danger-bg)}
+.ts-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+.ts-label{font-size:12px;font-weight:500;color:var(--text)}
+.ttl-scenario.best .ts-label{color:var(--success-text)}
+.ttl-scenario.warn .ts-label{color:var(--warn-text)}
+.ttl-scenario.bad .ts-label{color:var(--danger-text)}
+.ts-range{font-size:11px;font-family:var(--mono);color:var(--hint)}
+.ts-body{font-size:12px;color:var(--hint);line-height:1.5}
+.ttl-scenario.best .ts-body{color:var(--success-text)}
+.ttl-scenario.warn .ts-body{color:var(--warn-text)}
+.ttl-scenario.bad .ts-body{color:var(--danger-text)}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.sum-cell{background:var(--bg2);border-radius:var(--radius);padding:.75rem}
+.sum-lbl{font-size:11px;color:var(--hint);margin-bottom:3px}
+.sum-val{font-size:13px;font-weight:500;font-family:var(--mono);word-break:break-all}
+.tl-rows{background:var(--bg2);border-radius:var(--radius);padding:.75rem}
+.tl-row{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0;border-bottom:0.5px solid var(--border)}
+.tl-row:last-child{border-bottom:none}
+.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tl-name{color:var(--muted);flex:1}
+.tl-time{color:var(--hint);font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="container" id="top">
+
+<div id="screen-input">
+  <div class="page-header">
+    <h1>How Does The Internet Find A Website?</h1>
+    <p>When you type a website name, a lot happens behind the scenes. Type any domain and we'll walk through it together.</p>
+  </div>
+  <div class="input-row">
+    <input type="text" id="domain-input" placeholder="e.g. wikipedia.org" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')startJourney()"/>
+    <button class="primary" onclick="startJourney()">Let's go →</button>
+  </div>
+  <div id="err-msg"></div>
+</div>
+
+<div id="screen-journey" style="display:none">
+  <div class="prog-row" id="prog-row"></div>
+  <div id="pages-wrap"></div>
+</div>
+
+</div>
+<script>
+function parseDomain(r){return r.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*/,'').replace(/:.*/,'')}
+function isValid(d){return /^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z]{2,})+$/.test(d)}
+function fakeIP(){return[Math.floor(Math.random()*200+10),Math.floor(Math.random()*250),Math.floor(Math.random()*250),Math.floor(Math.random()*250)].join('.')}
+function fakeTTL(){return[300,600,900,1800,3600,7200,86400][Math.floor(Math.random()*7)]}
+function fakeNS(d){const s=d.split('.')[d.split('.').length-2];return['ns1.registrar.net','dns1.'+s+'.com','ns1.cloudflare.com','ns-782.awsdns-33.org'][Math.floor(Math.random()*4)]}
+function fakeRoot(){return'abcdefghijklm'[Math.floor(Math.random()*13)]+'.root-servers.net'}
+function fakeTLDsrv(tld){const m={com:'a.gtld-servers.net',org:'a0.org.afilias-nst.info',net:'a.gtld-servers.net',io:'ns1.dns.nic.io',de:'a.nic.de',uk:'ns1.nic.uk'};return m[tld.replace('.','')]||('ns1.nic'+tld)}
+function ttlH(s){s=+s;if(s<60)return s+'s';if(s<3600)return Math.round(s/60)+' min';if(s<86400)return(s/3600).toFixed(0)+' hr';return'24 hr'}
+const IP_EXPL=['This first number identifies the broad region — like knowing someone is in a particular country.','This narrows it down — like knowing which city.','Getting more specific — like the street or neighbourhood.','The last number pinpoints the exact machine — the specific building. Together, all four find one computer anywhere on earth.'];
+let STEPS=[],CUR=0,D={},dirExpanded=false;
+
+function buildSteps(){
+  const{domain,ip,ttl,ns,tld,root,tldSrv}=D;const sld=domain.split('.').slice(-2).join('.');
+  return[
+    {badge:'browser',title:'Step 1 — Checking Your Memory',narrative:`Your browser keeps a little notebook of websites you've visited. Before asking anyone for help, it flips through the pages: <em>"Have I looked up <strong>${domain}</strong> before?"</em>`,takeaway:{icon:'🧠',kicker:'Real world analogy',headline:'Remembering a friend\'s address without looking it up',body:`You've been there before, so you just go. No map needed. If the browser remembers ${domain}, it connects straight away — no servers involved at all.`},ix:'cache_sim',ixLabel:'Tap a domain — did the browser already visit it?'},
+    {badge:'browser',title:'Step 2 — Checking A Local Shortcut List',narrative:`Nothing in the notebook. Your computer checks a hidden list on your own machine — a personal contacts list that can redirect any website before the internet is even involved. Each entry maps a name to an <strong>IP address</strong> — tap the amber number to learn what that means.`,takeaway:{icon:'📱',kicker:'Real world analogy',headline:'A saved contact that overrides the phone book',body:`If you saved "Pizza place" as a contact, your phone uses that number — not whatever the phone book says. Your computer does exactly the same with this list.`},ix:'hosts_toggle',ixLabel:'Toggle the override — and tap an IP to understand it'},
+    {badge:'resolver',title:'Step 3 — Asking A Lookup Service',narrative:`Still nothing. Your computer calls a <strong>lookup service</strong> — a server whose entire job is to find addresses for you, run by your internet provider, Google, or Cloudflare.`,takeaway:{icon:'🙋',kicker:'Real world analogy',headline:'Asking someone at the info desk instead of wandering around',body:`They know the building. You just hand them the name and they come back with the answer. If someone asked the same question recently, they already know — instant reply.`},send:`looking up: ${domain}`,recv:null,ix:'packet_send',ixLabel:'Send the question yourself'},
+    {badge:'root',title:'Step 4 — Asking The Top Of The Tree',narrative:`The lookup service starts at the very top — a <strong>root server</strong>. There are only 13 of these in the world. They don't know <strong>${domain}</strong>'s address, but they know who to ask next.`,takeaway:{icon:'🏙️',kicker:'Real world analogy',headline:'Asking city hall which neighbourhood to go to',body:`City hall doesn't know your friend's door number. But they say "that street is in the east district — ask them." Root servers do exactly this: point you one level deeper.`},send:`who knows about "${tld}" websites?`,recv:`try asking → ${tldSrv}`,ix:'referral_chain',ixLabel:'Tap each hop to hear what was said'},
+    {badge:'tld',title:`Step 5 — Asking The "${tld.toUpperCase()}" Directory`,narrative:`The lookup service contacts the <strong>${tld} directory</strong>. It keeps track of every website ending in <strong>${tld}</strong>. Your domain is in there — find it and click it.`,takeaway:{icon:'🗂️',kicker:'Real world analogy',headline:'The neighbourhood notice board listing every resident',body:`It doesn't have the door key — just a note saying "that house is on Oak Street, talk to the landlord." One more hop and you'll have the actual address.`},send:`where is ${sld}?`,recv:`ask → ${ns}`,ix:'zone_directory',ixLabel:'Find your domain in the list'},
+    {badge:'auth',title:'Step 6 — Finding The Real Answer',narrative:`The lookup service asks <strong>${ns}</strong> — the server that owns the information for <strong>${domain}</strong>. It holds every DNS record for this domain. Open each one to see what it does.`,takeaway:{icon:'🔑',kicker:'Real world analogy',headline:'Finally meeting the landlord who has the actual key',body:`This is the person who knows everything — address, where to send post, who's allowed in. For ${domain}, this server is that person.`},send:`what is the address for ${domain}?`,recv:`${domain} is at ${ip}`,ix:'zone_reveal',ixLabel:'Open each record to see what it does'},
+    {badge:'cache',title:'Step 7 — Saving The Answer',narrative:`The lookup service saves a copy of <strong>${ip}</strong> so the next person who asks gets an instant answer. How long it keeps that copy depends on a timer — called a <strong>TTL</strong> — set by the website owner. Drag to see what each setting means in practice.`,takeaway:{icon:'🗒️',kicker:'Real world analogy',headline:'Writing the address on a Post-it that expires',body:`You jot it down so you don't have to ask again. But you put an expiry date on it — after that, you double-check in case they moved.`},recv:`saved: ${domain} = ${ip} for ${ttlH(ttl)}`,ix:'ttl_slider',ixLabel:'Drag to see the tradeoffs'},
+    {badge:'done-badge',title:"Done — You're Connected!",narrative:`Your browser now has the address <strong>${ip}</strong>. It connects and the page loads. That entire journey — through up to 4 servers across the internet — happened in under <strong>40 milliseconds</strong>. Faster than a blink.`,takeaway:{icon:'🌍',kicker:'The big picture',headline:'This happens every time you open anything online',body:`Every tab, every app, every image. DNS is the quiet system running underneath everything — and now you know exactly how it works.`},ix:'summary',ixLabel:'Your full journey'},
+  ];
+}
+
+function getDirEntries(){
+  const{domain,ns,tld}=D;const sld=domain.split('.').slice(-2).join('.');const base=sld.replace(tld,'');
+  const pool=[['amazon','ns1.amazon-dns.com'],['apple','pdns1.ultradns.net'],['bbc','ns1.bbc.co.uk'],['cloudflare','ns3.cloudflare.com'],['github','ns-1707.awsdns-21.co.uk'],['google','ns1.google.com'],['linkedin','dns1.p09.nsone.net'],['microsoft','ns1.msft.net'],['netflix','ns1.netflix.com'],['reddit','ns1.reddit.com'],['spotify','ns1.p07.dynect.net'],['wikipedia','ns0.wikimedia.org'],['youtube','ns1.google.com']].filter(([n])=>n!==base);
+  const all=[...pool];all.splice(Math.floor(all.length/2),0,[base,ns]);
+  return all.map(([n,s])=>({d:n+tld+'.',ns:s,yours:n===base}));
+}
+
+function renderIx(ix,label){
+  const{domain,ip,ttl,ns,tld,root,tldSrv}=D;const sld=domain.split('.').slice(-2).join('.');const localIP='192.168.1.5';
+  let inner='';
+  if(ix==='cache_sim'){
+    const items=[{d:domain,hit:false},{d:'google.com',hit:true},{d:'youtube.com',hit:true},{d:'site-'+Math.random().toString(36).slice(2,5)+'.net',hit:false}];
+    inner=`<div class="cache-pills">${items.map(x=>`<div class="cache-pill" onclick="simCache(this,'${x.d}',${x.hit})">${x.d}</div>`).join('')}</div><div class="cache-msg" id="cache-msg">Tap any domain above.</div>`;
+  } else if(ix==='hosts_toggle'){
+    const parts=localIP.split('.');
+    inner=`<div class="hosts-file"><div><span class="comment"># your computer's shortcut list</span></div><div><span class="ip-pill" onclick="showIPExplainer()">127.0.0.1</span> &nbsp;localhost</div><div><span class="ip-pill" onclick="showIPExplainer()">0.0.0.0</span> &nbsp;&nbsp;ads.tracker.com</div><div class="override-row" id="override-row"><span class="ip-pill" onclick="showIPExplainer()">${localIP}</span> &nbsp;${domain} &nbsp;<span class="comment">← override</span></div></div><div class="ip-popover" id="ip-popover"><div class="ip-popover-title">What is an IP address?</div><div class="ip-popover-body">Every computer on the internet has a unique number called an IP address — like a home address, but for machines. The whole point of DNS is to swap the name you typed for this number. Tap each part to understand it.</div><div class="ip-parts">${parts.map((p,i)=>`<span class="ip-chunk" onclick="explainPart(${i})">${p}</span>${i<3?'<span class="ip-dot-sep">.</span>':''}`).join('')}</div><div class="ip-expl" id="ip-expl">Tap any number above.</div></div><div class="hosts-toggle-row" onclick="toggleHosts()"><div class="tog-track" id="tog-track"><div class="tog-thumb"></div></div><span class="tog-label" id="tog-label">Add <strong>${domain}</strong> to the shortcut list</span></div><div class="hosts-result" id="hosts-result"></div>`;
+  } else if(ix==='packet_send'){
+    inner=`<div class="pb-fields"><div class="pb-row"><span class="pb-key">from</span><span class="pb-val">your computer</span></div><div class="pb-row"><span class="pb-key">to</span><span class="pb-val">lookup service (1.1.1.1)</span></div><div class="pb-row"><span class="pb-key">asking</span><span class="pb-val">what is the address for ${domain}?</span></div></div><button class="pb-send" onclick="sendPacket(this)">Send the question →</button><div class="pb-reply" id="pb-reply">Answer received: ${domain} is at ${ip}</div>`;
+  } else if(ix==='referral_chain'){
+    const hops=[{name:'Lookup service',role:'your starting point',said:`"I don't know ${domain}'s address. Let me start at the top."`},{name:'Root server',role:'top of the whole internet',said:`"Websites ending in ${tld} are managed by ${tldSrv} — ask them."`},{name:`${tld} directory`,role:`manages all ${tld} websites`,said:`"${sld} is looked after by ${ns} — they have the address."`},{name:`${ns}`,role:'the final answer',said:`"${domain} lives at ${ip}." — Done.`}];
+    inner=`<div class="chain">${hops.map(h=>`<div class="chain-hop" onclick="toggleHop(this)"><div class="hop-num">→</div><div class="hop-body"><div class="hop-name">${h.name}</div><div class="hop-role">${h.role}</div><div class="hop-said">${h.said}</div></div><div class="hop-caret">▸</div></div>`).join('')}</div>`;
+  } else if(ix==='zone_directory'){
+    const entries=getDirEntries();const shown=dirExpanded?entries:entries.slice(0,6);
+    const rows=shown.map(e=>`<div class="dir-row${e.yours?' active':''}" onclick="clickDir(this,${e.yours},'${e.d}','${e.ns}')"><span class="dir-domain">${e.d}</span><span class="dir-sep">→</span><span class="dir-ns">${e.ns}</span></div>`).join('');
+    inner=`<div id="dir-list">${rows}</div>${!dirExpanded?`<button class="dir-show-more" onclick="expandDir()">+ ${entries.length-6} more entries</button>`:''}<div class="dir-hint" id="dir-hint">Find <strong>${sld}.</strong> in the list and click it.</div>`;
+  } else if(ix==='zone_reveal'){
+    const recs=[{t:'A',v:ip,b:`This is what the whole journey was for. The A record maps <strong>${domain}</strong> to <strong>${ip}</strong> — the IP address of the server hosting the website. Your browser can now connect.`},{t:'MX',v:`mail.${domain}.`,b:`The MX record tells other mail servers where to deliver emails sent to @${domain}. Without it, email to that address would fail silently.`},{t:'TXT',v:`"v=spf1 ~all"`,b:`TXT records hold free-form text. This one is an SPF record — it lists which servers are allowed to send email for ${domain}, stopping spammers from faking your address.`},{t:'NS',v:`${ns}.`,b:`The NS record names this server itself. It tells the rest of the internet "this server is in charge of ${domain}." Like a business card for the nameserver.`}];
+    inner=`<div>${recs.map((r,i)=>`<div class="zcard" id="zc${i}"><button class="zcard-head" onclick="toggleZone(${i},${recs.length})"><span class="ztype">${r.t}</span><span class="zval">${r.v}</span><span class="zchev">▸</span></button><div class="zbody" id="zb${i}">${r.b}</div></div>`).join('')}</div><div class="zprog" id="zprog">0 of ${recs.length} records opened</div>`;
+  } else if(ix==='ttl_slider'){
+    inner=`<input type="range" min="60" max="86400" value="${ttl}" step="60" oninput="updateTtl(this.value)"/><div class="ttl-big" id="ttl-big">${ttlH(ttl)}</div><div class="ttl-sub" id="ttl-sub">This domain's TTL is set to ${ttlH(ttl)}.</div><div class="ttl-scenarios"><div class="ttl-scenario" id="ts0"><div class="ts-head"><span class="ts-label">Short TTL</span><span class="ts-range">under 5 min</span></div><div class="ts-body">Changes spread in minutes. Best right before moving your website to a new server.</div></div><div class="ttl-scenario" id="ts1"><div class="ts-head"><span class="ts-label">Medium TTL</span><span class="ts-range">5 min – 4 hr</span></div><div class="ts-body">A good everyday setting. Fast enough to recover from mistakes, efficient enough not to hammer DNS servers.</div></div><div class="ttl-scenario" id="ts2"><div class="ts-head"><span class="ts-label">Long TTL</span><span class="ts-range">4–24 hr</span></div><div class="ts-body">Very efficient. But if you need to change something urgently, you're waiting hours for the change to reach everyone.</div></div></div>`;
+    setTimeout(()=>updateTtl(ttl),50);
+  } else if(ix==='summary'){
+    const tl=[{col:'#378ADD',name:"Browser's memory",t:'instant'},{col:'#378ADD',name:'Shortcut list',t:'instant'},{col:'#7F77DD',name:'Lookup service',t:'~5 ms'},{col:'#BA7517',name:'Root server',t:'~20 ms'},{col:'#1D9E75',name:`${tld} directory`,t:'~30 ms'},{col:'#639922',name:`${ns}`,t:'~35 ms'},{col:'#D85A30',name:'Answer saved',t:'~35 ms'}];
+    inner=`<div class="sum-grid"><div class="sum-cell"><div class="sum-lbl">Website</div><div class="sum-val">${domain}</div></div><div class="sum-cell"><div class="sum-lbl">Address found</div><div class="sum-val">${ip}</div></div><div class="sum-cell"><div class="sum-lbl">Looked after by</div><div class="sum-val">${ns}</div></div><div class="sum-cell"><div class="sum-lbl">Answer kept for</div><div class="sum-val">${ttlH(ttl)}</div></div></div><div style="font-size:13px;font-weight:500;margin-bottom:.6rem">Places we visited</div><div class="tl-rows">${tl.map(r=>`<div class="tl-row"><div class="tl-dot" style="background:${r.col}"></div><span class="tl-name">${r.name}</span><span class="tl-time">${r.t}</span></div>`).join('')}</div>`;
+  }
+  return`<div class="ix"><div class="ix-header"><div class="ix-dot"></div><span class="ix-label">${label}</span></div>${inner}</div>`;
+}
+
+function updateTtl(v){
+  v=+v;
+  const b=document.getElementById('ttl-big');const s=document.getElementById('ttl-sub');
+  if(b)b.textContent=ttlH(v);
+  if(s)s.textContent=`This domain's TTL is set to ${ttlH(v)}.`;
+  const t0=document.getElementById('ts0');const t1=document.getElementById('ts1');const t2=document.getElementById('ts2');
+  if(!t0)return;
+  t0.className='ttl-scenario';t1.className='ttl-scenario';t2.className='ttl-scenario';
+  if(v<=300)t0.className='ttl-scenario best';
+  else if(v<=14400)t1.className='ttl-scenario warn';
+  else t2.className='ttl-scenario bad';
+}
+function clickDir(el,isYours,dname,nsname){
+  document.querySelectorAll('.dir-row').forEach(r=>r.classList.remove('active'));el.classList.add('active');
+  const h=document.getElementById('dir-hint');
+  h.innerHTML=isYours?`Found it! <strong>${dname}</strong> points to <strong>${nsname}</strong> — that's the next server to ask.`:`That's someone else's domain. Keep looking for <strong>${D.domain.split('.').slice(-2).join('.')}.</strong>`;
+}
+function expandDir(){
+  dirExpanded=true;const entries=getDirEntries();
+  document.getElementById('dir-list').innerHTML=entries.map(e=>`<div class="dir-row${e.yours?' active':''}" onclick="clickDir(this,${e.yours},'${e.d}','${e.ns}')"><span class="dir-domain">${e.d}</span><span class="dir-sep">→</span><span class="dir-ns">${e.ns}</span></div>`).join('');
+  const btn=document.querySelector('.dir-show-more');if(btn)btn.remove();
+}
+function toggleZone(i,total){
+  const card=document.getElementById('zc'+i);if(!card)return;card.classList.toggle('zopen');
+  const open=document.querySelectorAll('.zcard.zopen').length;const p=document.getElementById('zprog');
+  if(p)p.textContent=open===total?`All ${total} records opened — you've seen everything this server knows.`:`${open} of ${total} records opened`;
+}
+function showIPExplainer(){const p=document.getElementById('ip-popover');p.classList.add('show');p.scrollIntoView({behavior:'smooth',block:'nearest'})}
+function explainPart(i){document.querySelectorAll('.ip-chunk').forEach((c,j)=>c.style.opacity=j===i?'1':'0.35');document.getElementById('ip-expl').textContent=IP_EXPL[i]}
+function simCache(btn,d,hit){document.querySelectorAll('.cache-pill').forEach(p=>p.classList.remove('hit','miss'));btn.classList.add(hit?'hit':'miss');const m=document.getElementById('cache-msg');m.style.color=hit?'var(--success-text)':'var(--danger-text)';m.textContent=hit?`Found it! The browser remembers ${d} — connects straight away.`:`Not remembered. ${d} isn't in the notebook — the search continues.`}
+let hostsOn=false;
+function toggleHosts(){hostsOn=!hostsOn;document.getElementById('tog-track').classList.toggle('on',hostsOn);document.getElementById('override-row').style.display=hostsOn?'block':'none';document.getElementById('tog-label').innerHTML=hostsOn?`Remove <strong>${D.domain}</strong> from the shortcut list`:`Add <strong>${D.domain}</strong> to the shortcut list`;document.getElementById('hosts-result').textContent=hostsOn?`Now ${D.domain} skips the entire lookup process. Your computer goes straight to 192.168.1.5.`:`Override removed. ${D.domain} will go through the normal lookup process again.`;if(hostsOn)showIPExplainer()}
+function sendPacket(btn){btn.textContent='Sending...';btn.disabled=true;setTimeout(()=>{btn.textContent='Sent ✓';btn.style.background='var(--success-bg)';btn.style.color='var(--success-text)';document.getElementById('pb-reply').style.display='block'},700)}
+function toggleHop(el){const w=el.classList.contains('open');document.querySelectorAll('.chain-hop').forEach(h=>h.classList.remove('open'));if(!w)el.classList.add('open')}
+function scrollToTop(){window.scrollTo({top:0,behavior:'smooth'})}
+function startJourney(){
+  const raw=document.getElementById('domain-input').value;const errEl=document.getElementById('err-msg');errEl.innerHTML='';
+  if(!raw.trim()){errEl.innerHTML='<div class="err">Please type a website name — like google.com or bbc.co.uk.</div>';return}
+  const domain=parseDomain(raw);if(!isValid(domain)){errEl.innerHTML='<div class="err">Try something like <strong>google.com</strong> or <strong>bbc.co.uk</strong>.</div>';return}
+  const ip=fakeIP(),ttl=fakeTTL(),ns=fakeNS(domain);const tld='.'+domain.split('.').slice(-1)[0];
+  D={domain,ip,ttl,ns,tld,root:fakeRoot(),tldSrv:fakeTLDsrv(tld)};
+  STEPS=buildSteps();CUR=0;hostsOn=false;dirExpanded=false;
+  document.getElementById('screen-input').style.display='none';
+  document.getElementById('screen-journey').style.display='block';
+  renderProg();renderPage();scrollToTop();
+}
+function renderProg(){document.getElementById('prog-row').innerHTML=STEPS.map((_,i)=>`<div class="prog-pip ${i<CUR?'done':i===CUR?'active':''}" onclick="if(${i}<=${CUR}){CUR=${i};renderProg();renderPage();scrollToTop()}" title="${STEPS[i].title}"></div>`).join('')+`<span class="prog-label">${STEPS[CUR].title}</span>`}
+function renderPage(){
+  const s=STEPS[CUR];const isLast=CUR===STEPS.length-1;dirExpanded=false;
+  let html=`<div class="page-card"><div class="actor-badge ${s.badge}">${s.title}</div><div class="page-step-title">${s.title.split(' — ')[1]||s.title}</div><div class="page-narrative">${s.narrative}</div>`;
+  if(s.send||s.recv){html+=`<div class="packet-block">`;if(s.send)html+=`<div class="packet-row"><span class="pdir">asks</span><span class="pval">${s.send}</span></div>`;if(s.recv)html+=`<div class="packet-row"><span class="pdir">reply</span><span class="pval reply">${s.recv}</span></div>`;html+=`</div>`}
+  html+=renderIx(s.ix,s.ixLabel);
+  if(s.takeaway)html+=`<div class="takeaway"><span class="takeaway-icon">${s.takeaway.icon}</span><div class="takeaway-right"><div class="takeaway-kicker">${s.takeaway.kicker}</div><div class="takeaway-headline">${s.takeaway.headline}</div><div class="takeaway-body">${s.takeaway.body}</div></div></div>`;
+  html+=`<div class="nav">${CUR>0?`<button onclick="prev()">← Back</button>`:`<button onclick="resetAll()">← Try a different site</button>`}<span class="counter">${CUR+1} / ${STEPS.length}</span>${!isLast?`<button class="primary" onclick="next()">Next →</button>`:`<button class="primary" onclick="resetAll()">Try another site →</button>`}</div></div>`;
+  document.getElementById('pages-wrap').innerHTML=html;
+}
+function next(){if(CUR<STEPS.length-1){CUR++;renderProg();renderPage();scrollToTop()}}
+function prev(){if(CUR>0){CUR--;renderProg();renderPage();scrollToTop()}}
+function resetAll(){CUR=0;STEPS=[];D={};hostsOn=false;dirExpanded=false;document.getElementById('screen-journey').style.display='none';document.getElementById('screen-input').style.display='block';document.getElementById('domain-input').value='';document.getElementById('err-msg').innerHTML='';document.getElementById('domain-input').focus();scrollToTop()}
+</script>
+</body>
+</html>
